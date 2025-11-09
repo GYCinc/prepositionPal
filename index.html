@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrepositionPal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.5.0/"
+  }
+}
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  
+  body {
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Custom styles for range inputs */
+  .custom-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 9999px;
+    background-color: #f97316; /* orange-500 */
+    cursor: pointer;
+    margin-top: -6px; /* Adjust thumb position */
+    transition: background-color 0.2s ease-in-out;
+  }
+
+  .custom-range::-moz-range-thumb {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 9999px;
+    background-color: #f97316; /* orange-500 */
+    cursor: pointer;
+    border: none;
+  }
+
+  .custom-range::-webkit-slider-thumb:hover {
+    background-color: #fb923c; /* orange-400 */
+  }
+
+  .custom-range::-moz-range-thumb:hover {
+    background-color: #fb923c; /* orange-400 */
+  }
+
+  /* Keyframes for image animation */
+  @keyframes ken-burns {
+    0% {
+      transform: scale(1) translate(0, 0);
+    }
+    100% {
+      transform: scale(1.1) translate(-2%, 2%);
+    }
+  }
+
+  .animate-ken-burns {
+    animation: ken-burns 20s ease-in-out infinite alternate;
+  }
+</style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-gray-900 text-slate-200 min-h-screen flex flex-col antialiased">
+    <div id="root" class="flex-grow flex flex-col"></div>
+</body>
+</html>
