@@ -41,21 +41,26 @@ self.onmessage = async (e) => {
       const blob = base64ToBlob(imageDataString, 'image/png');
       imageBitmap = await createImageBitmap(blob);
     }
+    
+    // Fill background to avoid transparent letterboxing
+    context.fillStyle = '#17181C'; // background-dark
+    context.fillRect(0, 0, canvas.width, canvas.height);
 
     const canvasAspect = canvas.width / canvas.height;
     const imageAspect = imageBitmap.width / imageBitmap.height;
     let drawWidth, drawHeight, x, y;
 
+    // 'cover' behavior: fill the canvas, cropping the image if necessary
     if (imageAspect > canvasAspect) {
-      drawWidth = canvas.width;
-      drawHeight = canvas.width / imageAspect;
-      x = 0;
-      y = (canvas.height - drawHeight) / 2;
+        drawHeight = canvas.height;
+        drawWidth = drawHeight * imageAspect;
+        y = 0;
+        x = (canvas.width - drawWidth) / 2;
     } else {
-      drawHeight = canvas.height;
-      drawWidth = canvas.height * imageAspect;
-      y = 0;
-      x = (canvas.width - drawWidth) / 2;
+        drawWidth = canvas.width;
+        drawHeight = drawWidth / imageAspect;
+        x = 0;
+        y = (canvas.height - drawHeight) / 2;
     }
 
     context.drawImage(imageBitmap, x, y, drawWidth, drawHeight);
@@ -84,7 +89,6 @@ const CanvasImageDisplay: React.FC<CanvasImageDisplayProps> = ({ imageId, alt })
   const [isLoading, setIsLoading] = useState(true);
 
   // Effect to create and cleanup the worker's Blob URL.
-  // This runs only once when the component mounts and unmounts.
   useEffect(() => {
     const blob = new Blob([workerCode], { type: 'application/javascript' });
     workerUrlRef.current = URL.createObjectURL(blob);
@@ -94,17 +98,15 @@ const CanvasImageDisplay: React.FC<CanvasImageDisplayProps> = ({ imageId, alt })
         URL.revokeObjectURL(workerUrlRef.current);
         workerUrlRef.current = null;
       }
-      // Also ensure worker is terminated on unmount
       if (workerRef.current) {
         workerRef.current.terminate();
         workerRef.current = null;
       }
     };
-  }, []); // Empty dependency array ensures this runs only on mount and unmount
+  }, []);
 
   // Effect to manage the worker instance based on imageId.
   useEffect(() => {
-    // Terminate any existing worker before creating a new one
     if (workerRef.current) {
       workerRef.current.terminate();
     }
@@ -117,7 +119,6 @@ const CanvasImageDisplay: React.FC<CanvasImageDisplayProps> = ({ imageId, alt })
     const imageDataString = getImageData(imageId);
 
     if (!imageDataString) {
-      console.warn(`No image data found for ID: ${imageId}`);
       setIsLoading(false);
       return;
     }
@@ -126,7 +127,6 @@ const CanvasImageDisplay: React.FC<CanvasImageDisplayProps> = ({ imageId, alt })
 
     try {
       const offscreenCanvas = canvasRef.current.transferControlToOffscreen();
-      
       const worker = new Worker(workerUrlRef.current);
       workerRef.current = worker;
 
@@ -139,37 +139,28 @@ const CanvasImageDisplay: React.FC<CanvasImageDisplayProps> = ({ imageId, alt })
       }, [offscreenCanvas]);
 
       worker.onmessage = (e) => {
-        if (e.data.type === 'loaded') {
-          setIsLoading(false);
-        } else if (e.data.type === 'error') {
-          console.error("Error from worker:", e.data.message);
-          setIsLoading(false);
-        }
+        if (e.data.type === 'loaded') setIsLoading(false);
+        else if (e.data.type === 'error') setIsLoading(false);
       };
-
-      worker.onerror = (e) => {
-        console.error("Worker error:", e);
-        setIsLoading(false);
-      };
+      worker.onerror = () => setIsLoading(false);
 
     } catch (error) {
       console.error("Failed to setup OffscreenCanvas or Worker:", error);
       setIsLoading(false);
     }
     
-    // The cleanup is handled by the main mount/unmount effect and at the start of this effect.
   }, [imageId]);
 
   return (
-    <div className="w-full h-96 mb-6 rounded-lg overflow-hidden shadow-lg bg-slate-900/50 relative">
+    <div className="w-full aspect-video rounded-lg overflow-hidden shadow-lg bg-gray-200 dark:bg-gray-900 relative">
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/70 z-10">
-          <LoadingSpinner message="Loading image..." />
+        <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-gray-900/50 z-10">
+          <LoadingSpinner />
         </div>
       )}
        <canvas
         ref={canvasRef}
-        className={`w-full h-full transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100 animate-ken-burns'}`}
+        className={`w-full h-full transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         aria-label={alt}
         role="img"
        ></canvas>

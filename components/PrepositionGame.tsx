@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ALL_PREPOSITIONS,
-  PREPOSITION_FAMILIES,
   PREPOSITIONS_BY_LEVEL,
-  CATEGORY_COLORS,
 } from '../constants';
 import { GameLevel, Preposition, PrepositionCategory, PrepositionItem, Question, FirestoreQuestion } from '../types';
 import Button from './Button';
@@ -16,54 +14,100 @@ import { setImageData, clearImageData } from '../services/imageStore';
 
 const buildGeminiPrompt = (level: GameLevel, preposition: Preposition, humorLevel: number): string => {
   let levelHint = '';
-  let fewShotExample = '';
+  let fewShotExamples = ''; // Changed to hold multiple examples
   let humorAdj = '';
 
   if (humorLevel >= 5) {
-    humorAdj = 'The situation described can be mildly unusual or amusing in a realistic way, but the language must remain completely natural and straightforward.';
+    // Keep humor grounded and realistic, not fantastical
+    humorAdj = 'The scenario can be mildly unusual or amusing in a realistic, subtle way. Humor should arise from a simple, real-world twist. Avoid absurdity, puns, or fantastical elements; the language must remain completely natural and straightforward. Focus on concrete scenarios.';
   }
+
+  // General instruction: Generate ONE single, natural-sounding, everyday English sentence. It MUST sound like something a native speaker would genuinely say or appear in a common language textbook. Vary the scenarios to keep them fresh and diverse. Include a single blank '______' where the preposition should fit.
+  // ABSOLUTELY AVOID: poetry, abstract concepts, figurative language, metaphors, similes, overly descriptive adjectives/adverbs, fantastical elements, complex clauses (unless specifically for C1/C2), more than one distinct action or subject, rarely used vocabulary, formal tone, or anything difficult for an AI to depict simply and unambiguously.
+  // Prioritize common verbs, nouns, and everyday expressions (lexical chunks) that make the English sound genuinely natural and conversational.
+  // Ensure the scenario is clearly depictable in a single image with 1-2 main subjects/objects.
 
   switch (level) {
     case GameLevel.A1:
-      levelHint = 'A1-level vocabulary and very simple subject-verb-object structure. Use common, concrete nouns and verbs only. Shortest possible sentences.';
-      fewShotExample = 'For an A1 level, a correct sentence looks like this: "My keys are ______ the table."';
+      levelHint = 'A1-level vocabulary and very simple subject-verb-object structure. Use common, concrete nouns and verbs only. Shortest sentences (8-12 words), focusing on immediate, observable actions or locations.';
+      fewShotExamples = `
+For an A1 level, correct sentences look like this:
+- "The keys are ______ the table."
+- "She lives ______ a small house."
+- "He is waiting ______ the bus stop."
+- "The dog ran ______ the tree."
+- "She put her book ______ the bag."`;
       break;
     case GameLevel.A2:
-      levelHint = 'A2-level vocabulary and simple compound sentences (e.g., using "and," "but"). Focus on concrete daily activities or immediate surroundings. Short to medium length.';
-      fewShotExample = 'For an A2 level, a correct sentence looks like this: "I usually go to work ______ bus."';
+      levelHint = 'A2-level vocabulary and simple compound sentences (e.g., using "and," "but," "because"). Focus on concrete daily activities, immediate surroundings, or simple past/future events. Short to medium length (8-18 words).';
+      fewShotExamples = `
+For an A2 level, correct sentences look like this:
+- "I usually go to work ______ bus every morning."
+- "The cat jumped ______ the fence into the garden."
+- "We walked ______ the park after dinner."
+- "She always leaves her keys ______ the kitchen counter."
+- "He looked ______ the window at the rain."`;
       break;
     case GameLevel.B1:
-      levelHint = 'B1-level vocabulary and common sentence structures, including basic complex sentences. Everyday topics and social interactions. Medium length, natural flow.';
-      fewShotExample = 'For a B1 level, a correct sentence looks like this: "She always arrives ______ time for her appointments."';
+      levelHint = 'B1-level vocabulary and common complex sentences (e.g., with relative clauses like "which," "who," "that," "when," or simple conditional structures). Everyday topics, social interactions, or descriptions of experiences. Medium length (12-18 words). Use common phrasal verbs.';
+      fewShotExamples = `
+For a B1 level, correct sentences look like this:
+- "She put the groceries ______ the cupboard for storage."
+- "The entire team depends ______ his leadership skills."
+- "They argued ______ the best way to solve the problem."
+- "He apologized ______ being late to the meeting."
+- "She is thinking ______ moving to a new city next year."`;
       break;
     case GameLevel.B2:
-      levelHint = 'B2-level vocabulary and varied sentence structures. Suitable for discussing opinions, current events, or more nuanced everyday situations. Medium to long length, clear and direct.';
-      fewShotExample = 'For a B2 level, a correct sentence looks like this: "The success of the project depended heavily ______ his dedication."';
+      levelHint = 'B2-level vocabulary and varied complex sentence structures (e.g., advanced conditionals, some passive voice, reported speech). Suitable for discussing opinions, current events, describing processes, or more nuanced everyday situations. Medium to long length (12-18 words). Use more complex phrasal verbs and idiomatic expressions.';
+      fewShotExamples = `
+For a B2 level, correct sentences look like this:
+- "Her promotion was a direct result ______ her consistent hard work."
+- "The decision to cancel the event rests ______ the committee members."
+- "They talked ______ length about their travel plans for the summer."
+- "The government imposed new restrictions ______ imports to protect local industries."
+- "He succeeded ______ persuading them to change their minds."`;
       break;
     case GameLevel.C1:
-      levelHint = 'C1-level vocabulary and sophisticated factual sentence structures. Can discuss abstract concepts or academic/professional topics, maintaining a neutral and objective tone. Long length, natural and advanced phrasing.';
-      fewShotExample = 'For a C1 level, a correct sentence looks like this: "They conversed animatedly ______ various topics throughout the evening."';
+      levelHint = 'C1-level vocabulary and sophisticated, varied complex sentence structures (e.g., advanced conditionals, inversions, nuanced passive voice, complex sentence adverbs). Sentences should involve detailed descriptions of concrete situations or complex sequential actions in realistic, visualizable contexts. Longer length (15-22 words). Use advanced collocations and more formal but natural phrasing.';
+      fewShotExamples = `
+For a C1 level, correct sentences look like this:
+- "The new policy came ______ effect immediately after the announcement."
+- "Despite the harsh conditions, the explorers pressed ______ with their journey."
+- "He often finds himself at odds ______ his colleagues on policy matters."
+- "The committee deliberated ______ the proposed changes for several hours."
+- "She demonstrated a profound understanding ______ the complex theoretical framework."`;
       break;
     case GameLevel.C2:
-      levelHint = 'C2-level vocabulary and advanced, nuanced factual sentence structures. Can handle highly complex topics or express subtle meanings, reflecting native-like proficiency. Very long and complex sentences, highly natural.';
-      fewShotExample = 'For a C2 level, a correct sentence looks like this: "His argument bordered ______ outright defiance of the committee\'s decision."';
+      levelHint = 'C2-level vocabulary and highly advanced, precise, and idiomatic sentence structures, reflecting native-like mastery. Sentences should express subtle distinctions, complex interdependencies, or professional-level discourse within realistic and highly detailed, visualizable contexts. Very long and grammatically intricate (15-22 words). Prioritize native-like idiomatic expressions and subtle nuances of meaning.';
+      fewShotExamples = `
+For a C2 level, correct sentences look like this:
+- "The politician was held ______ account for his controversial statements."
+- "Her meticulous attention ______ detail ensured the project's success."
+- "The company embarked ______ a new venture to expand its global reach."
+- "They decided to dispense ______ the formalities and proceed directly to the main agenda."
+- "The historical document provided invaluable insight ______ the customs of ancient civilizations."`;
       break;
     default:
       levelHint = 'basic vocabulary and simple sentence structures.';
-      fewShotExample = '';
+      fewShotExamples = '';
   }
 
-  return `Generate ONE single, natural-sounding, everyday English sentence. It MUST sound like something a native speaker would genuinely say or appear in a common language textbook. Include a single blank '______' where the preposition should fit. Focus on realistic, concrete scenarios. Absolutely no poetry, no abstract concepts, no overly descriptive adjectives/adverbs, and no fantastical elements. The tone should be neutral and conversational.
+  return `Generate ONE single, natural-sounding, everyday English sentence. It MUST sound like something a native speaker would genuinely say or appear in a common language textbook. Vary the scenarios to keep them fresh and diverse. Include a single blank '______' where the preposition should fit.
+ABSOLUTELY AVOID: poetry, abstract concepts, figurative language, metaphors, similes, overly descriptive adjectives/adverbs, fantastical elements, complex clauses (unless specifically for C1/C2), more than one distinct action or subject, rarely used vocabulary, formal tone, or anything difficult for an AI to depict simply and unambiguously.
+Prioritize common verbs, nouns, and everyday expressions (lexical chunks) that make the English sound genuinely natural and conversational.
+Keep sentences concise: 8-12 words for A1/A2, 12-18 words for B1/B2, and 15-22 words for C1/C2. Do NOT exceed these limits.
+Ensure the scenario is clearly depictable in a single image with 1-2 main subjects/objects.
 ${humorAdj ? humorAdj + '\n' : ''}
 The sentence should be appropriate for a ${level} learner, using ${levelHint}.
-${fewShotExample}
+${fewShotExamples}
 Use the preposition "${preposition}".
 Return ONLY the sentence with the blank.`;
 };
 
 const generateRandomSentenceContext = (
   level: GameLevel,
-  selectedCategory?: PrepositionCategory,
+  selectedCategory: PrepositionCategory | null,
 ): { correctPreposition: PrepositionItem } => {
   let categoriesToConsider: PrepositionCategory[];
 
@@ -73,26 +117,17 @@ const generateRandomSentenceContext = (
     // Dynamic category selection based on level
     if (level === GameLevel.A1 || level === GameLevel.A2) {
       categoriesToConsider = [PrepositionCategory.LOCATION, PrepositionCategory.DIRECTION, PrepositionCategory.TIME];
-    } else if (level === GameLevel.B1 || level === GameLevel.B2) {
-      categoriesToConsider = [
-        PrepositionCategory.LOCATION,
-        PrepositionCategory.DIRECTION,
-        PrepositionCategory.TIME,
-        PrepositionCategory.MANNER,
-      ];
-    } else { // C1, C2
-      categoriesToConsider = Object.values(PrepositionCategory).filter(
-        (cat) => PREPOSITION_FAMILIES[cat] && PREPOSITION_FAMILIES[cat].length > 0
-      );
+    } else {
+      categoriesToConsider = Object.values(PrepositionCategory);
     }
   }
 
   let filteredPrepositionsByCategory: PrepositionItem[] = [];
   for (const cat of categoriesToConsider) {
-    filteredPrepositionsByCategory.push(
-      ...ALL_PREPOSITIONS.filter((p) => p.category === cat)
-    );
+    const preps = ALL_PREPOSITIONS.filter((p) => p.category === cat);
+    filteredPrepositionsByCategory.push(...preps);
   }
+  
   filteredPrepositionsByCategory = Array.from(new Set(filteredPrepositionsByCategory));
 
   const allowedPrepositionsForLevel = PREPOSITIONS_BY_LEVEL[level];
@@ -142,165 +177,176 @@ const getWrongOptions = (correctAnswer: Preposition, level: GameLevel): Preposit
 interface PrepositionGameProps {
   level: GameLevel;
   humorLevel: number;
+  category: PrepositionCategory | null;
   onApiKeyNeeded: () => void;
+  onGameEnd: () => void;
 }
 
+const wittyLoadingMessages = [
+  "Conjuring prepositions from the linguistic ether...",
+  "Teaching our AI the difference between 'in' and 'on' (it's complicated)...",
+  "Brewing a fresh batch of grammatically challenging scenarios...",
+  "Consulting the oracle of 'at,' 'in,' and 'on'...",
+  "Polishing the linguistic lenses for your next visual puzzle...",
+  "Downloading more brain cells for the next sentence...",
+  "Wrangling words into grammatically correct formations...",
+  "Applying advanced prepositional physics...",
+  "Just a moment, our AI is contemplating the nuances of 'upon'...",
+  "Generating a sentence so perfectly obscure, it's brilliant...",
+  "Fetching pixels and prepositions, in that order...",
+  "Ensuring your next challenge is 'on point'...",
+  "Almost ready! Our AI is just adding a touch of 'between' to the scene...",
+  "Dusting off some forgotten prepositions for your pleasure...",
+  "Asking the AI to please, for the love of grammar, keep it concise...",
+  "Warming up the image generator – hope it knows its 'beside' from its 'behind'!",
+  "Calculating the exact degree of linguistic trickery needed...",
+  "Feeding the algorithm more coffee (and prepositions)...",
+  "Scanning for sentences that won't make you say 'huh?'",
+];
 
-const PrepositionGame: React.FC<PrepositionGameProps> = ({ level, humorLevel, onApiKeyNeeded }) => {
+const PrepositionGame: React.FC<PrepositionGameProps> = ({ level, humorLevel, category, onApiKeyNeeded, onGameEnd }) => {
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<Preposition | null>(null);
-  const [feedback, setFeedback] = useState<string | null>(null);
+  const [isAnswerChecked, setIsAnswerChecked] = useState(false);
+  const [explanation, setExplanation] = useState<string | null>(null);
   const [score, setScore] = useState(0);
   const [questionCount, setQuestionCount] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentCategory, setCurrentCategory] = useState<PrepositionCategory | null>(null);
-  
+  const [isFadingOut, setIsFadingOut] = useState(false);
+  const [currentLoadingMessage, setCurrentLoadingMessage] = useState<string>('');
+
+
   const askedQuestionsInSessionRef = useRef<Set<string>>(new Set());
   const currentImageIdRef = useRef<string | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-
-  useEffect(() => {
-    try {
-        // Initialize AudioContext only once and store in ref
-        if (!audioContextRef.current) {
-            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-        }
-    } catch (e) {
-        console.error("Web Audio API is not supported in this browser:", e);
-    }
-  }, []); // Empty dependency array means this runs once on mount
 
   const playSound = useCallback((type: 'correct' | 'incorrect' | 'loading') => {
-    const ctx = audioContextRef.current;
-    if (!ctx) {
-      console.warn("AudioContext not available.");
-      return;
-    }
+    const audioContext: AudioContext = new (window.AudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
 
-    if (ctx.state === 'suspended') {
-        ctx.resume().catch(e => console.error("Failed to resume AudioContext:", e));
-    }
-
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
     oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    
-    gainNode.gain.setValueAtTime(0, ctx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.01);
+    gainNode.connect(audioContext.destination);
+
+    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
 
     switch (type) {
-        case 'correct':
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(600, ctx.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.1);
-            gainNode.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.4);
-            break;
-        case 'incorrect':
-            oscillator.type = 'square';
-            oscillator.frequency.setValueAtTime(300, ctx.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.15);
-            gainNode.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.4);
-            break;
-        case 'loading':
-            oscillator.type = 'triangle';
-            oscillator.frequency.setValueAtTime(800, ctx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.1);
-            break;
+      case 'correct':
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+        gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.4);
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.4);
+        break;
+      case 'incorrect':
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(220, audioContext.currentTime); // A3
+        gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.4);
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.4);
+        break;
+      case 'loading':
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.1);
+        break;
     }
-
-    oscillator.start(ctx.currentTime);
-    oscillator.stop(ctx.currentTime + 0.5);
   }, []);
 
   const generateQuestion = useCallback(async (questionNumber: number) => {
     setLoading(true);
     setError(null);
-    setFeedback(null);
     setSelectedAnswer(null);
+    setIsAnswerChecked(false);
+    setExplanation(null);
+    playSound('loading'); // Play loading sound
+    setCurrentLoadingMessage(wittyLoadingMessages[Math.floor(Math.random() * wittyLoadingMessages.length)]);
 
-    // Clear the previous image data from the store
+
     if (currentImageIdRef.current) {
         clearImageData(currentImageIdRef.current);
     }
 
     try {
-      const imageId = `question-${questionNumber}`;
+      const imageId = `question-${Date.now()}-${questionNumber}`;
       currentImageIdRef.current = imageId;
 
-      const cachedQuestionData = await getQuestionFromCache(level, currentCategory, Array.from(askedQuestionsInSessionRef.current));
+      const cachedQuestionData = await getQuestionFromCache(level, category, Array.from(askedQuestionsInSessionRef.current));
+
+      let generatedSentence: string;
+      let correctPrepositionItem: PrepositionItem; // Changed from correctPreposition
+      let options: Preposition[];
+      let imageData: string;
+      let imageUrlForCache: string;
 
       if (cachedQuestionData) {
-        console.log("Serving question from Firestore cache.");
-        // For cached data, imageUrl is a string URL.
         setImageData(imageId, cachedQuestionData.imageUrl); 
-        const options = getWrongOptions(cachedQuestionData.correctAnswer, level);
-        setCurrentQuestion({
-            id: cachedQuestionData.id,
-            sentence: cachedQuestionData.sentence,
-            correctAnswer: cachedQuestionData.correctAnswer,
-            imageId: imageId,
-            options: options,
+        options = getWrongOptions(cachedQuestionData.correctAnswer, level);
+        generatedSentence = cachedQuestionData.sentence;
+        correctPrepositionItem = ALL_PREPOSITIONS.find(p => p.preposition === cachedQuestionData.correctAnswer)!;
+        imageData = cachedQuestionData.imageUrl; // Already a URL or base64
+        imageUrlForCache = cachedQuestionData.imageUrl;
+      } else {
+        ({ correctPreposition: correctPrepositionItem } = generateRandomSentenceContext(level, category)); // Corrected variable name
+        
+        // 1. Generate the sentence FIRST.
+        const sentencePrompt = buildGeminiPrompt(level, correctPrepositionItem.preposition, humorLevel);
+        generatedSentence = (await generateText(sentencePrompt)).trim();
+
+        // Ensure the blank is present; if not, re-insert using the correct preposition
+        if (!generatedSentence.includes('______')) {
+          const regex = new RegExp(`\\b${correctPrepositionItem.preposition}\\b`, 'gi');
+          generatedSentence = generatedSentence.replace(regex, '______');
+          // Fallback to example sentence if AI generated sentence doesn't have the preposition or blank
+          if (!generatedSentence.includes('______')) {
+              generatedSentence = correctPrepositionItem.exampleSentence.replace(correctPrepositionItem.preposition, '______');
+          }
+        }
+        
+        // 2. NOW use the *generatedSentence* for the image prompt.
+        // Explicitly instruct the AI to depict the *exact scene* described and to NOT add text.
+        const imagePrompt = `Generate a high-resolution, photorealistic image. The image MUST directly and unambiguously depict the exact scene or situation described in this English sentence: "${generatedSentence.replace('______', correctPrepositionItem.preposition)}". The image must be a pure visual representation. DO NOT, under any circumstances, render any text, letters, or words onto the image. The final image must contain ZERO text. Focus on creating a clear, single focal point that visually emphasizes the spatial or temporal relationship implied by the preposition. Use distinct, easily identifiable objects, a simple and relevant background, and strong visual cues to enhance clarity and memorability for a language learner. The image should act as a strong mental anchor, making the preposition's usage immediately apparent through visual context. Do not add any elements that are not explicitly mentioned in the sentence.`;
+
+        options = getWrongOptions(correctPrepositionItem.preposition, level); // Pre-compute options here
+        
+        const imageDataResponse = await generateImage(imagePrompt).catch(err => {
+            console.warn('Image generation failed, falling back:', err);
+            return `https://picsum.photos/800/450?random=${Math.random()}`;
+          });
+
+        imageData = imageDataResponse;
+        setImageData(imageId, imageData); 
+        imageUrlForCache = imageData.startsWith('http') ? imageData : `data:image/png;base64,${imageData}`;
+        
+        addQuestionToCache({
+            level,
+            category: correctPrepositionItem.category,
+            sentence: generatedSentence,
+            correctAnswer: correctPrepositionItem.preposition,
+            imageUrl: imageUrlForCache, 
         });
-        askedQuestionsInSessionRef.current.add(cachedQuestionData.id!);
-        setLoading(false);
-        return;
       }
 
-      console.log("No suitable cached question found. Generating a new one.");
-      const { correctPreposition } = generateRandomSentenceContext(level, currentCategory || undefined);
-      const sentencePrompt = buildGeminiPrompt(level, correctPreposition.preposition, humorLevel);
-      
-      const sentenceResponse = await generateText(sentencePrompt);
-      let generatedSentence = (sentenceResponse || correctPreposition.exampleSentence).trim();
-
-      if (!generatedSentence.includes('______')) {
-        const regex = new RegExp(`\\b${correctPreposition.preposition}\\b`, 'gi');
-        generatedSentence = generatedSentence.replace(regex, '______');
-         if (!generatedSentence.includes('______')) {
-            generatedSentence = correctPreposition.exampleSentence.replace(correctPreposition.preposition, '______');
-         }
-      }
-
-      const imagePromptSentence = generatedSentence.replace('______', correctPreposition.preposition);
-      const imagePrompt = `A visually striking, high-resolution, photorealistic image that clearly illustrates the scene from the sentence: "${imagePromptSentence}". Use cinematic lighting and a dynamic composition to make the image engaging, but ensure the core subject and action are immediately understandable. Maintain a realistic style.`;
-      
-      // `imageData` will now be a raw base64 data string (WITHOUT prefix) or a string URL (for fallbacks)
-      const imageData = await generateImage(imagePrompt).catch(err => {
-         console.warn('Image generation failed, falling back:', err);
-         return `https://picsum.photos/800/450?random=${Math.random()}`; // Fallback is a string URL
-      });
-      
-      setImageData(imageId, imageData); // Put the new image data (base64 string or URL) in the store
-
-      // For Firestore, store a placeholder or actual URL. Raw base64 cannot be stored directly.
-      // Prepend 'data:image/png;base64,' for cache consistency if storing raw base64.
-      const imageUrlForCache = imageData.startsWith('http') ? imageData : `data:image/png;base64,${imageData}`;
-      
-      const newQuestionForCache: Omit<FirestoreQuestion, 'createdAt' | 'id'> = {
-          level,
-          category: correctPreposition.category,
-          sentence: generatedSentence,
-          correctAnswer: correctPreposition.preposition,
-          imageUrl: imageUrlForCache, 
-      };
-
-      // NOTE: Storing Blob data in Firestore is not directly supported.
-      // For a persistent cache, you would need to convert the Blob to base64 or upload it to Firebase Storage.
-      addQuestionToCache(newQuestionForCache);
-
-      const options = getWrongOptions(correctPreposition.preposition, level);
       setCurrentQuestion({
+        id: cachedQuestionData?.id, // Use cached ID if available
         sentence: generatedSentence,
-        correctAnswer: correctPreposition.preposition,
+        correctAnswer: correctPrepositionItem.preposition,
         options,
         imageId: imageId,
       });
 
+      if (cachedQuestionData?.id) {
+          askedQuestionsInSessionRef.current.add(cachedQuestionData.id);
+      }
+
     } catch (err: any) {
       console.error('Failed to generate question:', err);
-      if (err.message && err.message.includes("API key selection initiated due to 'Requested entity was not found.'")) {
+      if (err.message && err.message.includes("API key selection initiated")) {
         setError("Your API key may be invalid or unselected. Please select your API key to continue.");
         onApiKeyNeeded();
       } else {
@@ -309,148 +355,146 @@ const PrepositionGame: React.FC<PrepositionGameProps> = ({ level, humorLevel, on
     } finally {
       setLoading(false);
     }
-  }, [level, humorLevel, currentCategory, onApiKeyNeeded, playSound]); // Added playSound to dependencies
+  }, [level, humorLevel, category, onApiKeyNeeded, playSound]);
 
   useEffect(() => {
-    generateQuestion(questionCount);
-    // No specific cleanup for Blobs here; they are managed by the imageStore and renderImageOnCanvas utility.
-    return () => {
-        // No global URL.revokeObjectURL needed from PrepositionGame itself
-        // as the image data is passed as a string to the worker.
+    if (!isFadingOut) { // Only generate new question if not currently fading out
+      generateQuestion(questionCount);
     }
-  }, [generateQuestion, questionCount]);
+  }, [questionCount, generateQuestion, isFadingOut]); 
 
-  const handleAnswer = useCallback((answer: Preposition) => {
-    setSelectedAnswer(answer);
-    if (currentQuestion && answer === currentQuestion.correctAnswer) {
-      setFeedback('Correct! 🎉');
+  const handleCheckAnswer = useCallback(async () => {
+    if (!selectedAnswer || !currentQuestion) return;
+
+    setIsAnswerChecked(true);
+    if (selectedAnswer === currentQuestion.correctAnswer) {
       setScore((prev) => prev + 1);
-      playSound('correct');
+      playSound('correct'); // Play correct sound
     } else {
-      setFeedback(`Incorrect. The correct answer was "${currentQuestion?.correctAnswer}". 🙁`);
-      playSound('incorrect');
+      playSound('incorrect'); // Play incorrect sound
+      setExplanation('Generating explanation...');
+      try {
+        const fullSentence = currentQuestion.sentence.replace('______', `"${currentQuestion.correctAnswer}"`);
+        const explanationPrompt = `For an English learner at the ${level} level, briefly explain why the preposition "${currentQuestion.correctAnswer}" is the correct choice in the sentence: "${fullSentence}". Keep the explanation very short, simple, and encouraging.`;
+        const generatedExplanation = await generateText(explanationPrompt);
+        setExplanation(generatedExplanation);
+      } catch (err) {
+        console.error("Failed to generate explanation:", err);
+        setExplanation("Sorry, couldn't generate an explanation.");
+      }
     }
-  }, [currentQuestion, playSound]);
+  }, [selectedAnswer, currentQuestion, level, playSound]);
 
   const handleNextQuestion = useCallback(() => {
-    playSound('loading');
-    setQuestionCount((prev) => prev + 1);
-  }, [playSound]);
+    setIsFadingOut(true); // Start fade-out
+    setTimeout(() => {
+      setQuestionCount((prev) => prev + 1);
+      setIsFadingOut(false); // Reset fade-out after new question loads
+    }, 500); // Duration of fade-out animation
+  }, []);
 
-  const resetGame = useCallback(() => {
-    playSound('loading');
-    setScore(0);
-    setCurrentCategory(null);
-    askedQuestionsInSessionRef.current.clear();
-    // Clear image data for the current question when resetting
-    if (currentImageIdRef.current) {
-        clearImageData(currentImageIdRef.current);
-        currentImageIdRef.current = null;
+  const getFeedbackClasses = (option: Preposition): string => {
+    if (!isAnswerChecked) {
+      // Not checked yet: subtle ring for selected, default for others
+      return selectedAnswer === option
+        ? 'ring-primary border-primary scale-[1.01] shadow-lg'
+        : 'ring-gray-300 dark:ring-gray-700 hover:ring-primary/50';
     }
-    setQuestionCount(0); // This will trigger a new generateQuestion call via useEffect
-  }, [playSound]);
-  
-  const handleCategoryChange = useCallback((category: PrepositionCategory | null) => {
-    playSound('loading');
-    setCurrentCategory(category);
-    setQuestionCount(0); // This will trigger a new generateQuestion call via useEffect
-  }, [playSound]);
+    // Answer is checked, apply feedback animations
+    if (option === currentQuestion?.correctAnswer) {
+      return 'ring-green-500 !bg-green-50 dark:!bg-green-900/50 animate-pulse-correct shadow-md shadow-green-500/50';
+    }
+    if (option === selectedAnswer) {
+      return 'ring-red-500 !bg-red-50 dark:!bg-red-900/50 animate-shake-incorrect shadow-md shadow-red-500/50';
+    }
+    // Correct but not selected, or wrong and not selected
+    return 'ring-gray-300 dark:ring-gray-700 opacity-60 pointer-events-none';
+  };
+
+  if (loading || isFadingOut) {
+    return <LoadingSpinner message={isFadingOut ? "Transitioning..." : currentLoadingMessage} />;
+  }
+
+  if (error) {
+    return (
+      <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-700 max-w-md mx-auto animate-fade-in ethereal-border">
+        <p className="font-semibold text-red-500 font-display drop-shadow-sm">An Error Occurred</p>
+        <p className="text-sm my-4 text-gray-700 dark:text-gray-300 font-body drop-shadow-sm">{error}</p>
+        <Button onClick={() => generateQuestion(questionCount)}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (!currentQuestion) {
+    return null; // Should not happen if not loading and no error
+  }
 
   return (
-    <div className="flex flex-col items-center p-6 md:p-8 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl shadow-2xl w-full max-w-4xl mx-auto my-8">
-      <div className="w-full flex justify-end items-center mb-6">
-        <div className="text-xl font-bold text-slate-300 bg-slate-700/50 px-4 py-2 rounded-lg">
-          Score: <span className="font-mono text-violet-400">{score} / {questionCount}</span>
+    <div className={`w-full max-w-3xl mx-auto flex flex-col items-center ${isFadingOut ? 'animate-fade-out' : 'animate-fade-in'}`}>
+      <div className="w-full aspect-video rounded-lg overflow-hidden shadow-xl ethereal-border bg-gray-200 dark:bg-gray-900 relative">
+        <CanvasImageDisplay 
+          key={currentQuestion.imageId} 
+          imageId={currentQuestion.imageId}
+          alt="Scenario" 
+        />
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden w-full mt-8 ethereal-border">
+        <div className="bg-gray-50 dark:bg-gray-700 py-3 px-6 border-b border-gray-200 dark:border-gray-600">
+          <p className="text-base font-semibold tracking-wider text-gray-600 dark:text-gray-300 uppercase text-center font-display drop-shadow-sm">Complete the sentence</p>
+        </div>
+        <div className="p-6">
+          <p className="text-xl md:text-2xl text-center text-gray-900 dark:text-white flex items-center justify-center gap-2 flex-wrap font-display drop-shadow-sm">
+            {currentQuestion.sentence.split('______').map((part, index, arr) => (
+              <React.Fragment key={index}>
+                <span>{part}</span>
+                {index < arr.length - 1 && <span className="inline-block w-20 h-8 border-2 border-dashed border-gray-400 dark:border-gray-500 rounded-md"></span>}
+              </React.Fragment>
+            ))}
+          </p>
         </div>
       </div>
-      
-      <div className="flex justify-center flex-wrap gap-2 mb-8 border-b border-slate-700 pb-6 w-full">
-        {Object.values(PrepositionCategory).map((category) => (
-          <Button
-            key={category}
-            onClick={() => handleCategoryChange(category)}
-            className={currentCategory === category ? CATEGORY_COLORS[category] + ' text-white border ' : ''}
-            variant={currentCategory === category ? 'primary' : 'secondary'}
-            size="sm"
+
+      <div className="flex flex-wrap justify-center gap-4 w-full mt-8">
+        {currentQuestion.options.map((option) => (
+          <label 
+            key={option}
+            className={`flex items-center justify-center min-w-[100px] flex-grow py-3 px-5 rounded-lg shadow-md cursor-pointer ring-2 transition-all duration-200 ease-in-out
+                        bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-200 font-semibold font-display drop-shadow-sm
+                        active:scale-[0.97] active:bg-gray-100 dark:active:bg-gray-700/80
+                        focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 focus-within:ring-offset-background-dark
+                        ${getFeedbackClasses(option)}`}
           >
-            {category}
-          </Button>
-        ))}
-        <Button
-          onClick={() => handleCategoryChange(null)}
-          variant={currentCategory === null ? 'primary' : 'secondary'}
-          size="sm"
-        >
-          All Categories
-        </Button>
-      </div>
-
-      <div className="w-full min-h-[400px] flex items-center justify-center">
-        {loading && <LoadingSpinner message="Loading..." />}
-        {error && (
-          <div className="p-4 bg-rose-900/50 border border-rose-700 text-rose-200 rounded-md text-center">
-            <p className="font-semibold">An Error Occurred</p>
-            <p className="text-sm mb-4">{error}</p>
-            <Button onClick={() => generateQuestion(questionCount)} variant="secondary">
-              Retry Question
-            </Button>
-          </div>
-        )}
-
-        {currentQuestion && !loading && !error && (
-          <div className="w-full flex flex-col items-center animate-fade-in">
-            <CanvasImageDisplay 
-              key={currentQuestion.imageId} 
-              imageId={currentQuestion.imageId}
-              alt="Scenario" 
+            <span>{option}</span>
+            <input 
+              type="radio"
+              name="preposition-option"
+              value={option}
+              checked={selectedAnswer === option}
+              onChange={() => setSelectedAnswer(option)}
+              disabled={isAnswerChecked}
+              className="sr-only"
             />
-            <div className="text-center mb-8">
-              <p className="text-lg text-slate-400 mb-2">Fill in the blank:</p>
-              <p className="text-2xl md:text-3xl font-medium text-slate-100 p-4 bg-slate-900/70 rounded-lg">
-                {currentQuestion.sentence}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 w-full max-w-2xl mb-6">
-              {currentQuestion.options.map((option) => (
-                <Button
-                  key={option}
-                  onClick={() => handleAnswer(option)}
-                  disabled={!!selectedAnswer}
-                  variant='secondary'
-                  size='lg'
-                  isSelected={selectedAnswer === option}
-                  isCorrect={!!selectedAnswer && option === currentQuestion.correctAnswer}
-                  isIncorrect={!!selectedAnswer && selectedAnswer === option && option !== currentQuestion.correctAnswer}
-                >
-                  {option}
-                </Button>
-              ))}
-            </div>
-
-            {feedback && (
-              <div className="text-center animate-fade-in">
-                <p
-                  className={`text-xl font-semibold mb-4 ${
-                    feedback.includes('Correct') ? 'text-emerald-400' : 'text-rose-400'
-                  }`}
-                >
-                  {feedback}
-                </p>
-                <Button onClick={handleNextQuestion} className="w-full md:w-auto">
-                  Next Question
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
+          </label>
+        ))}
       </div>
+      
+      {isAnswerChecked && explanation && (
+        <div className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md w-full ethereal-border animate-fade-in">
+           <p className="text-gray-800 dark:text-gray-200 font-body drop-shadow-sm">{explanation}</p>
+        </div>
+      )}
 
-      <div className="mt-8 border-t border-slate-700 pt-6 w-full flex justify-center">
-        <Button onClick={resetGame} variant="secondary">
-          Reset Game
+      <footer className="w-full pt-8">
+        <Button 
+          onClick={isAnswerChecked ? handleNextQuestion : handleCheckAnswer}
+          disabled={!selectedAnswer && !isAnswerChecked}
+        >
+          {isAnswerChecked ? 'Next Question' : 'Check Answer'}
         </Button>
-      </div>
+      </footer>
     </div>
   );
 };
