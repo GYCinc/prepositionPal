@@ -4,7 +4,7 @@
 | Component Name | Responsibility |
 |---|---|
 | `App` | Manages global application state (API key, game level, humor level, mode), orchestrates view rendering based on user interaction and API key status. |
-| `PrepositionGame` | Main game logic, orchestrates question generation, answer checking, score tracking, and UI transitions. |
+| `PrepositionGame` | Main game logic, orchestrates question generation, answer checking, score tracking, and UI transitions. Includes `generateVideo` logic for periodic video rounds. |
 | `CategorySelectionScreen` | Provides UI for users to select a preposition category or all categories. |
 | `AboutSection` | Displays information about the PrepositionPal application. |
 | `FaqSection` | Displays frequently asked questions about the application. |
@@ -12,7 +12,6 @@
 | `LoadingSpinner` | Displays a loading animation and message during asynchronous operations. |
 | `CanvasImageDisplay` | Handles rendering of base64 image data or URLs onto an OffscreenCanvas using a Web Worker for performance. |
 | `services/geminiService` | Handles all interactions with the Google Gemini API for text and image generation. |
-| `services/firebaseService` | (Disabled) Placeholder for Firestore integration for question caching. Currently a no-op to prevent crashes. |
 | `services/imageStore` | Non-reactive cache for large image data (base64 strings) to prevent React state serialization issues. |
 ```
 ## 2. Data Models & Schemas
@@ -64,17 +63,6 @@
   "options": "Preposition[]",
   "imageId?": "string"
 }"
-
-"// FirestoreQuestion Interface (for database storage, currently disabled)
-{
-  "id?": "string",
-  "level": "GameLevel",
-  "category": "PrepositionCategory",
-  "sentence": "string",
-  "correctAnswer": "Preposition",
-  "imageUrl": "string",
-  "createdAt": "any" // Firestore Timestamp
-}"
 ```
 ## 3. Critical Logic Flows
 *   **Application Initialization**:
@@ -90,8 +78,7 @@
     5.  Calls `services/geminiService.generateImage` with a descriptive prompt based on the generated sentence to get image data.
     6.  Image data is stored in `services/imageStore` and rendered by `CanvasImageDisplay` via an `OffscreenCanvas` Web Worker.
     7.  Random incorrect `options` are generated for the question.
-    8.  If Firebase caching were enabled, `getQuestionFromCache` would be called first, and `addQuestionToCache` after successful generation.
-    9.  `PrepositionGame` updates `currentQuestion` state and `loading` becomes false.
+    8.  `PrepositionGame` updates `currentQuestion` state and `loading` becomes false.
 *   **Answer Checking and Feedback Flow**:
     1.  User selects an answer and clicks "Check Answer".
     2.  `PrepositionGame` compares `selectedAnswer` with `currentQuestion.correctAnswer`.
@@ -129,9 +116,6 @@
     *   `generateText(prompt: string, model?: string): Promise<string>`: Sends a text prompt to the specified Gemini model (default `gemini-2.5-flash`), with `thinkingConfig` applied for `gemini-2.5-flash`. Returns the generated text.
     *   `generateSearchGroundedText(prompt: string, model?: string): Promise<{ text: string; groundingUrls: { uri: string; title?: string }[] }>`: Sends a text prompt to the specified Gemini model (default `gemini-2.5-flash`) with Google Search grounding enabled. Returns the generated text and an array of relevant grounding URLs (if any). Includes `thinkingConfig` for `gemini-2.5-flash`.
     *   `generateImage(prompt: string): Promise<string>`: Sends an image generation prompt to `gemini-2.5-flash-image`. Returns a base64 encoded image string (without prefix) or a fallback image URL. Handles API key selection errors.
-*   **`services/firebaseService.ts` (currently disabled)**:
-    *   `addQuestionToCache(question: Omit<FirestoreQuestion, 'createdAt' | 'id'>): Promise<void>`: Attempts to add a question to a Firestore collection. Currently a no-op.
-    *   `getQuestionFromCache(level: GameLevel, category: PrepositionCategory | null, excludeIds: string[]): Promise<FirestoreQuestion | null>`: Attempts to retrieve a question from Firestore cache based on level, category, and excluded IDs. Currently a no-op, always returns `null`.
 *   **`services/imageStore.ts`**:
     *   `setImageData(id: string, data: string): void`: Stores image data (base64 string or URL) by a unique ID.
     *   `getImageData(id: string): string | undefined`: Retrieves image data by ID.
@@ -139,4 +123,3 @@
 *   **`window.aistudio` (injected by runtime)**:
     *   `hasSelectedApiKey(): Promise<boolean>`: Checks if an API key has been selected by the user.
     *   `openSelectKey(): Promise<void>`: Opens a dialog for the user to select or enter an API key.
-```

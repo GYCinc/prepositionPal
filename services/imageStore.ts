@@ -10,7 +10,8 @@ const imageCache = new Map<string, string>(); // Updated type to string
  * @param id A unique identifier for the image.
  * @param data The image data (base64 string for generated images, or a string URL for fallbacks).
  */
-export const setImageData = (id: string, data: string): void => { // Updated type
+export const setImageData = (id: string, data: string): void => {
+  // Updated type
   imageCache.set(id, data);
 };
 
@@ -19,7 +20,8 @@ export const setImageData = (id: string, data: string): void => { // Updated typ
  * @param id The unique identifier for the image.
  * @returns The image data (string), or undefined if not found.
  */
-export const getImageData = (id: string): string | undefined => { // Updated type
+export const getImageData = (id: string): string | undefined => {
+  // Updated type
   return imageCache.get(id);
 };
 

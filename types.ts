@@ -1,4 +1,3 @@
-
 export enum PrepositionCategory {
   LOCATION = 'Location',
   DIRECTION = 'Direction',
@@ -79,7 +78,7 @@ export enum AppMode {
 
 // Data structure for a question as it is played in the game
 export interface Question {
-  id?: string; 
+  id?: string;
   sentence: string;
   correctAnswer: Preposition;
   options: Preposition[];
@@ -130,8 +129,8 @@ export interface UserProgress {
   currentStreak: number;
   bestStreak: number;
   lastPlayed: number; // Timestamp
-  levelStats: Record<string, LevelStats>; 
-  categoryStats: Record<string, CategoryStats>; 
+  levelStats: Record<string, LevelStats>;
+  categoryStats: Record<string, CategoryStats>;
 }
 
 export interface QuestionResult {

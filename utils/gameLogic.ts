@@ -1,12 +1,15 @@
-
 import { GameLevel, Preposition, PrepositionCategory, PrepositionItem } from '../types';
 import { ALL_PREPOSITIONS, PREPOSITIONS_BY_LEVEL } from '../constants';
 
 // Recalibrated based on strict COCA (Corpus of Contemporary American English) Frequency Lists
-export const buildGeminiPrompt = (level: GameLevel, preposition: Preposition, humorLevel: number): string => {
+export const buildGeminiPrompt = (
+  level: GameLevel,
+  preposition: Preposition,
+  humorLevel: number
+): string => {
   let vocabConstraint = '';
   let sentenceStructure = '';
-  
+
   switch (level) {
     case GameLevel.Level_1: // A1
       vocabConstraint = 'STRICTLY usage of only the Top 500 words in COCA (American).';
@@ -60,7 +63,8 @@ export const buildGeminiPrompt = (level: GameLevel, preposition: Preposition, hu
     humorAdj = 'Tone: Casual and light.';
   } else if (humorLevel <= 7) {
     humorAdj = 'Tone: Clever and engaging.';
-  } else { // 8-10
+  } else {
+    // 8-10
     humorAdj = 'Tone: Witty, sharp, or containing a surprising twist.';
   }
 
@@ -79,7 +83,7 @@ Return ONLY the sentence.`;
 
 export const generateRandomSentenceContext = (
   level: GameLevel,
-  selectedCategory: PrepositionCategory | null,
+  selectedCategory: PrepositionCategory | null
 ): { correctPreposition: PrepositionItem } => {
   let categoriesToConsider: PrepositionCategory[];
 
@@ -90,7 +94,11 @@ export const generateRandomSentenceContext = (
     if (level === GameLevel.Level_1 || level === GameLevel.Level_2 || level === GameLevel.Level_3) {
       categoriesToConsider = [PrepositionCategory.LOCATION, PrepositionCategory.DIRECTION];
     } else if (level === GameLevel.Level_4 || level === GameLevel.Level_5) {
-       categoriesToConsider = [PrepositionCategory.LOCATION, PrepositionCategory.DIRECTION, PrepositionCategory.TIME];
+      categoriesToConsider = [
+        PrepositionCategory.LOCATION,
+        PrepositionCategory.DIRECTION,
+        PrepositionCategory.TIME,
+      ];
     } else {
       categoriesToConsider = Object.values(PrepositionCategory);
     }
@@ -101,7 +109,7 @@ export const generateRandomSentenceContext = (
     const preps = ALL_PREPOSITIONS.filter((p) => p.category === cat);
     filteredPrepositionsByCategory.push(...preps);
   }
-  
+
   filteredPrepositionsByCategory = Array.from(new Set(filteredPrepositionsByCategory));
 
   const allowedPrepositionsForLevel = PREPOSITIONS_BY_LEVEL[level];
@@ -114,7 +122,8 @@ export const generateRandomSentenceContext = (
     const fallbackPrepositions = ALL_PREPOSITIONS.filter((p) =>
       PREPOSITIONS_BY_LEVEL[GameLevel.Level_1].includes(p.preposition)
     );
-    const correctPreposition = fallbackPrepositions.length > 0
+    const correctPreposition =
+      fallbackPrepositions.length > 0
         ? fallbackPrepositions[Math.floor(Math.random() * fallbackPrepositions.length)]
         : ALL_PREPOSITIONS[Math.floor(Math.random() * ALL_PREPOSITIONS.length)];
     return { correctPreposition };
@@ -126,16 +135,17 @@ export const generateRandomSentenceContext = (
   return { correctPreposition };
 };
 
-export const getWrongOptions = (correctAnswer: Preposition, level: GameLevel): Preposition[] => {
-    const allPossiblePrepositions = ALL_PREPOSITIONS.map((p) => p.preposition);
-    let options: Preposition[] = [correctAnswer];
-    let wrongOptionsCount: number = 3; 
+export const getWrongOptions = (correctAnswer: Preposition, _level: GameLevel): Preposition[] => {
+  const allPossiblePrepositions = ALL_PREPOSITIONS.map((p) => p.preposition);
+  const options: Preposition[] = [correctAnswer];
+  const wrongOptionsCount: number = 3;
 
-    while (options.length < wrongOptionsCount + 1) {
-        const randomPreposition = allPossiblePrepositions[Math.floor(Math.random() * allPossiblePrepositions.length)];
-        if (!options.includes(randomPreposition)) {
-            options.push(randomPreposition);
-        }
+  while (options.length < wrongOptionsCount + 1) {
+    const randomPreposition =
+      allPossiblePrepositions[Math.floor(Math.random() * allPossiblePrepositions.length)];
+    if (!options.includes(randomPreposition)) {
+      options.push(randomPreposition);
     }
-    return options.sort(() => Math.random() - 0.5);
+  }
+  return options.sort(() => Math.random() - 0.5);
 };

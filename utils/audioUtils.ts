@@ -1,4 +1,3 @@
-
 // Helper to decode base64 string to Uint8Array
 function decodeBase64(base64: string): Uint8Array {
   const binaryString = atob(base64);
@@ -34,7 +33,7 @@ async function decodeAudioData(
 
 export const playRawAudio = async (base64String: string, sampleRate: number = 24000) => {
   try {
-    const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     const audioContext = new AudioContextClass({ sampleRate });
     const bytes = decodeBase64(base64String);
     const audioBuffer = await decodeAudioData(bytes, audioContext, sampleRate, 1);
@@ -43,16 +42,16 @@ export const playRawAudio = async (base64String: string, sampleRate: number = 24
     source.buffer = audioBuffer;
     source.connect(audioContext.destination);
     source.start(0);
-    
+
     // Return a promise that resolves when audio ends
     return new Promise<void>((resolve) => {
-        source.onended = () => {
-            audioContext.close();
-            resolve();
-        };
+      source.onended = () => {
+        audioContext.close();
+        resolve();
+      };
     });
   } catch (error) {
-    console.error("Error playing raw audio:", error);
+    console.error('Error playing raw audio:', error);
     throw error;
   }
 };

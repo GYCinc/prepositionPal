@@ -155,25 +155,26 @@ const CanvasImageDisplay: React.FC<CanvasImageDisplayProps> = ({ imageId, alt })
       const worker = new Worker(workerUrlRef.current);
       workerRef.current = worker;
 
-      worker.postMessage({
-        canvas: offscreenCanvas,
-        imageDataString: imageDataString,
-        width: canvasRef.current.clientWidth,
-        height: canvasRef.current.clientHeight,
-        devicePixelRatio: window.devicePixelRatio
-      }, [offscreenCanvas]);
+      worker.postMessage(
+        {
+          canvas: offscreenCanvas,
+          imageDataString: imageDataString,
+          width: canvasRef.current.clientWidth,
+          height: canvasRef.current.clientHeight,
+          devicePixelRatio: window.devicePixelRatio,
+        },
+        [offscreenCanvas]
+      );
 
       worker.onmessage = (e) => {
         if (e.data.type === 'loaded') setIsLoading(false);
         else if (e.data.type === 'error') setIsLoading(false);
       };
       worker.onerror = () => setIsLoading(false);
-
     } catch (error) {
-      console.error("Failed to setup OffscreenCanvas:", error);
+      console.error('Failed to setup OffscreenCanvas:', error);
       setIsLoading(false);
     }
-    
   }, [imageId]);
 
   return (
@@ -183,12 +184,12 @@ const CanvasImageDisplay: React.FC<CanvasImageDisplayProps> = ({ imageId, alt })
           <LoadingSpinner />
         </div>
       )}
-       <canvas
+      <canvas
         ref={canvasRef}
         className={`w-full h-full block transition-opacity duration-500 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
         aria-label={alt}
         role="img"
-       />
+      />
     </div>
   );
 };

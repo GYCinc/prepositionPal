@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Button from './Button';
@@ -18,7 +17,7 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onBack }) => {
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
-    
+
     setLoading(true);
     setError(null);
     setVideoUrl(null);
@@ -34,7 +33,7 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onBack }) => {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
@@ -45,8 +44,18 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onBack }) => {
           <h2 className="text-xl font-bold text-gray-900 dark:text-white font-display uppercase tracking-wider">
             Veo Video Studio
           </h2>
-          <button onClick={onBack} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          <button
+            onClick={onBack}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M6 18L18 6M6 6l12 12"
+              ></path>
+            </svg>
           </button>
         </div>
 
@@ -69,12 +78,14 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onBack }) => {
               Aspect Ratio
             </label>
             <div className="flex gap-4">
-              <label className={`flex-1 cursor-pointer p-4 rounded-lg border-2 transition-all ${aspectRatio === '16:9' ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700'}`}>
-                <input 
-                  type="radio" 
-                  name="aspectRatio" 
-                  value="16:9" 
-                  checked={aspectRatio === '16:9'} 
+              <label
+                className={`flex-1 cursor-pointer p-4 rounded-lg border-2 transition-all ${aspectRatio === '16:9' ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700'}`}
+              >
+                <input
+                  type="radio"
+                  name="aspectRatio"
+                  value="16:9"
+                  checked={aspectRatio === '16:9'}
                   onChange={() => setAspectRatio('16:9')}
                   className="sr-only"
                   disabled={loading}
@@ -85,12 +96,14 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onBack }) => {
                   <p className="text-xs text-gray-500">Landscape</p>
                 </div>
               </label>
-              <label className={`flex-1 cursor-pointer p-4 rounded-lg border-2 transition-all ${aspectRatio === '9:16' ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700'}`}>
-                <input 
-                  type="radio" 
-                  name="aspectRatio" 
-                  value="9:16" 
-                  checked={aspectRatio === '9:16'} 
+              <label
+                className={`flex-1 cursor-pointer p-4 rounded-lg border-2 transition-all ${aspectRatio === '9:16' ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-700'}`}
+              >
+                <input
+                  type="radio"
+                  name="aspectRatio"
+                  value="9:16"
+                  checked={aspectRatio === '9:16'}
                   onChange={() => setAspectRatio('9:16')}
                   className="sr-only"
                   disabled={loading}
@@ -117,10 +130,10 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onBack }) => {
           ) : videoUrl ? (
             <div className="space-y-4">
               <div className="rounded-lg overflow-hidden shadow-lg border border-gray-800 bg-black relative">
-                <video 
-                  src={videoUrl} 
-                  controls 
-                  autoPlay 
+                <video
+                  src={videoUrl}
+                  controls
+                  autoPlay
                   loop
                   className="w-full h-auto max-h-[600px] mx-auto"
                 />
