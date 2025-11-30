@@ -9,7 +9,7 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ message }) => {
   return (
     <motion.div
       className="flex flex-col items-center justify-center p-4"
-      initial={{ opacity: 0, scale: 0.9 }}
+      initial={{ opacity: 1, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}

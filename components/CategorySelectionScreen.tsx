@@ -3,7 +3,7 @@ import { motion, Variants } from 'framer-motion';
 import { PrepositionCategory } from '../types';
 
 const gridContainerVariants: Variants = {
-  hidden: { opacity: 0 },
+  hidden: { opacity: 1 },
   show: {
     opacity: 1,
     transition: {
@@ -14,7 +14,7 @@ const gridContainerVariants: Variants = {
 };
 
 const gridItemVariants: Variants = {
-  hidden: { opacity: 0, scale: 0.9, y: 20 },
+  hidden: { opacity: 1, scale: 0.9, y: 20 },
   show: {
     opacity: 1,
     scale: 1,

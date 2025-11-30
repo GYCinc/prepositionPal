@@ -11,7 +11,7 @@ import GameSettingsControl from './components/GameSettingsControl';
 import { AboutSection, FaqSection } from './components/InfoSections';
 
 const pageVariants: Variants = {
-  initial: { opacity: 0, scale: 0.95 },
+  initial: { opacity: 1, scale: 0.95 },
   animate: {
     opacity: 1,
     scale: 1,
@@ -235,7 +235,7 @@ function App() {
     if (hasApiKeySelected === false) {
       return (
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 1, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center p-12 bg-[#212229]/90 backdrop-blur-xl rounded-3xl shadow-2xl max-w-xl mx-auto border border-white/10"
         >
@@ -266,7 +266,7 @@ function App() {
           <motion.div
             key="game-container"
             className="w-full h-full fixed inset-0 z-50"
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 1, scale: 0.8 }}
             animate={{
               opacity: 1,
               scale: 1,
@@ -295,7 +295,7 @@ function App() {
       <AnimatePresence>
         {selectedCategory === undefined && (
           <motion.header
-            initial={{ opacity: 0, y: -50 }}
+            initial={{ opacity: 1, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
             className="w-full max-w-6xl mx-auto mb-8 flex justify-between items-end border-b border-white/10 pb-6 relative z-10"
