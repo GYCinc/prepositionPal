@@ -1,4 +1,4 @@
-import { GoogleGenAI, GenerateContentResponse, Modality } from '@google/genai';
+import { GoogleGenAI, GenerateContentResponse, Modality, Type } from "@google/genai";
 import { getCachedVideo, cacheVideo, getCachedAudio, cacheAudio } from './dbService';
 
 const getGeminiClient = () => {
@@ -7,25 +7,20 @@ const getGeminiClient = () => {
   return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };
 
-export const generateText = async (
-  prompt: string,
-  model: string = 'gemini-2.5-flash'
-): Promise<string> => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _modelUsed = model;
+export const generateText = async (prompt: string, model: string = 'gemini-2.5-flash'): Promise<string> => {
   try {
     const ai = getGeminiClient();
-
+    
     // Initialize config object
     const config: any = {};
 
     // Apply thinking config for 'gemini-2.5-flash' as requested.
     // The effective token limit for the response is `maxOutputTokens` minus the `thinkingBudget`.
-    // In this case: 200 - 100 = 100 tokens available for the final response,
+    // In this case: 1000 - 500 = 500 tokens available for the final response,
     // which is sufficient for generating sentences and short explanations.
     if (model === 'gemini-2.5-flash') {
-      config.maxOutputTokens = 200;
-      config.thinkingConfig = { thinkingBudget: 100 };
+      config.maxOutputTokens = 1000;
+      config.thinkingConfig = { thinkingBudget: 500 };
     }
 
     const response: GenerateContentResponse = await ai.models.generateContent({
@@ -63,8 +58,8 @@ export const generateSearchGroundedText = async (
     if (model === 'gemini-2.5-flash') {
       // The effective token limit for the response is `maxOutputTokens` minus the `thinkingBudget`.
       // 200 - 100 = 100 tokens available for the final response.
-      config.maxOutputTokens = 200;
-      config.thinkingConfig = { thinkingBudget: 100 };
+      config.maxOutputTokens = 1000; 
+      config.thinkingConfig = { thinkingBudget: 500 };
     }
 
     const response: GenerateContentResponse = await ai.models.generateContent({
@@ -86,6 +81,7 @@ export const generateSearchGroundedText = async (
       text: response.text || '',
       groundingUrls: groundingUrls,
     };
+
   } catch (error) {
     console.error('Error generating search-grounded text:', error);
     throw error;
@@ -114,8 +110,8 @@ export const generateImage = async (prompt: string): Promise<string> => {
     }
     throw new Error('No image found in the response.');
   } catch (error: any) {
-    if (error.message && error.message.includes('Requested entity was not found.')) {
-      console.warn('API key might be invalid or not selected. Prompting user to select key.');
+    if (error.message && error.message.includes("Requested entity was not found.")) {
+      console.warn("API key might be invalid or not selected. Prompting user to select key.");
       // Re-throw with a specific message that the UI can catch to trigger key selection
       throw new Error("API key selection initiated due to 'Requested entity was not found.'.");
     }
@@ -135,7 +131,7 @@ export const generateSpeech = async (text: string, voiceName: string = 'Kore'): 
   const ai = getGeminiClient();
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-preview-tts',
+      model: "gemini-2.5-flash-native-audio-preview-09-2025",
       contents: [{ parts: [{ text: text }] }],
       config: {
         responseModalities: [Modality.AUDIO],
@@ -146,10 +142,10 @@ export const generateSpeech = async (text: string, voiceName: string = 'Kore'): 
         },
       },
     });
-
+    
     const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if (!audioData) {
-      throw new Error('No audio data generated.');
+      throw new Error("No audio data generated.");
     }
 
     // 2. Save to persistent cache
@@ -163,12 +159,12 @@ export const generateSpeech = async (text: string, voiceName: string = 'Kore'): 
 };
 
 export const generateVideo = async (
-  prompt: string,
-  aspectRatio: '16:9' | '9:16',
+  prompt: string, 
+  aspectRatio: '16:9' | '9:16', 
   onProgress?: (status: string) => void
 ): Promise<string> => {
   // 1. Check persistent cache
-  if (onProgress) onProgress('Checking archives...');
+  if (onProgress) onProgress("Checking archives...");
   const cachedBlob = await getCachedVideo(prompt, aspectRatio);
   if (cachedBlob) {
     console.log('Using cached Veo video');
@@ -178,7 +174,7 @@ export const generateVideo = async (
   const ai = getGeminiClient();
   try {
     // 2. Initiate video generation
-    if (onProgress) onProgress('Generating video: Step 1/3 - Scene Setup');
+    if (onProgress) onProgress("Generating video: Step 1/3 - Scene Setup");
     let operation = await ai.models.generateVideos({
       model: 'veo-3.1-fast-generate-preview',
       prompt: prompt,
@@ -186,32 +182,32 @@ export const generateVideo = async (
         numberOfVideos: 1,
         resolution: '720p', // Defaulting to 720p for preview speed
         aspectRatio: aspectRatio,
-      },
+      }
     });
 
     // 3. Poll for completion
     // Note: Veo generation can take a moment.
-    if (onProgress) onProgress('Generating video: Step 2/3 - Rendering');
+    if (onProgress) onProgress("Generating video: Step 2/3 - Rendering");
     while (!operation.done) {
-      await new Promise((resolve) => setTimeout(resolve, 3000)); // Poll every 3 seconds
+      await new Promise(resolve => setTimeout(resolve, 3000)); // Poll every 3 seconds
       operation = await ai.operations.getVideosOperation({ operation: operation });
     }
 
     const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
     if (!videoUri) {
-      throw new Error('Video generation completed but no URI returned.');
+      throw new Error("Video generation completed but no URI returned.");
     }
 
     // 4. Fetch the actual video bytes using the API Key
     // The URI requires the API key appended to it.
-    if (onProgress) onProgress('Generating video: Step 3/3 - Finalizing');
+    if (onProgress) onProgress("Generating video: Step 3/3 - Finalizing");
     const downloadUrl = `${videoUri}&key=${process.env.API_KEY}`;
-
+    
     const response = await fetch(downloadUrl);
     if (!response.ok) {
-      throw new Error(`Failed to download video: ${response.statusText}`);
+        throw new Error(`Failed to download video: ${response.statusText}`);
     }
-
+    
     const blob = await response.blob();
 
     // 5. Save to persistent cache
@@ -219,7 +215,7 @@ export const generateVideo = async (
 
     return URL.createObjectURL(blob); // Return a locally accessible Blob URL
   } catch (error) {
-    console.error('Error generating video:', error);
+    console.error("Error generating video:", error);
     throw error;
   }
 };

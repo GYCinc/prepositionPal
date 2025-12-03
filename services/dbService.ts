@@ -1,4 +1,5 @@
 import { UserProgress, QuestionResult, GameLevel, Preposition, CachedQuestion } from '../types';
+import type { SessionLog } from '../utils/ActivityLogger';
 
 export interface VideoCacheItem {
   id: string; // prompt + aspectRatio
@@ -17,7 +18,7 @@ export interface AudioCacheItem {
 }
 
 const DB_NAME = 'PrepositionPalContentDB';
-const DB_VERSION = 3;
+const DB_VERSION = 4; // Bumped for activity_logs
 const USER_PROGRESS_KEY = 'user_main_progress';
 
 const INITIAL_PROGRESS: UserProgress = {
@@ -29,7 +30,7 @@ const INITIAL_PROGRESS: UserProgress = {
   bestStreak: 0,
   lastPlayed: Date.now(),
   levelStats: {},
-  categoryStats: {},
+  categoryStats: {}
 };
 
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -58,13 +59,17 @@ const initDB = (): Promise<IDBDatabase> => {
         const qStore = db.createObjectStore('question_cache', { keyPath: 'id' });
         qStore.createIndex('level_preposition', ['level', 'preposition'], { unique: false });
       }
+      // New store for activity logs (Aggressive Tracking safety)
+      if (!db.objectStoreNames.contains('activity_logs')) {
+        db.createObjectStore('activity_logs', { keyPath: 'session_id' });
+      }
     };
 
     request.onsuccess = () => {
       resolve(request.result);
     };
 
-    request.onerror = (_event) => {
+    request.onerror = (event) => {
       console.error('IndexedDB error:', request.error);
       reject(request.error);
     };
@@ -73,54 +78,68 @@ const initDB = (): Promise<IDBDatabase> => {
   return dbPromise;
 };
 
+// --- Activity Log Persistence ---
+
+export const saveActivityLog = async (log: SessionLog) => {
+    const db = await initDB();
+    return new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction(['activity_logs'], 'readwrite');
+        const store = transaction.objectStore('activity_logs');
+        const request = store.put(log);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+};
+
 // --- Question Caching ---
 
 export const cacheGeneratedQuestion = async (question: CachedQuestion) => {
-  const db = await initDB();
-  return new Promise<void>((resolve, reject) => {
-    const transaction = db.transaction(['question_cache'], 'readwrite');
-    const store = transaction.objectStore('question_cache');
-    const request = store.put(question);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
+    const db = await initDB();
+    return new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction(['question_cache'], 'readwrite');
+        const store = transaction.objectStore('question_cache');
+        const request = store.put(question);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
 };
 
 export const findCachedQuestion = async (
-  level: GameLevel,
-  preposition: Preposition,
-  excludeIds: string[]
+    level: GameLevel, 
+    preposition: Preposition, 
+    excludeIds: string[]
 ): Promise<CachedQuestion | null> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['question_cache'], 'readonly');
-    const store = transaction.objectStore('question_cache');
-    const index = store.index('level_preposition');
-    const range = IDBKeyRange.only([level, preposition]);
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(['question_cache'], 'readonly');
+        const store = transaction.objectStore('question_cache');
+        const index = store.index('level_preposition');
+        const range = IDBKeyRange.only([level, preposition]);
+        
+        const request = index.openCursor(range);
+        const candidates: CachedQuestion[] = [];
 
-    const request = index.openCursor(range);
-    const candidates: CachedQuestion[] = [];
-
-    request.onsuccess = (event) => {
-      const cursor = (event.target as IDBRequest).result;
-      if (cursor) {
-        const q = cursor.value as CachedQuestion;
-        if (!excludeIds.includes(q.id)) {
-          candidates.push(q);
-        }
-        cursor.continue();
-      } else {
-        if (candidates.length > 0) {
-          const randomIdx = Math.floor(Math.random() * candidates.length);
-          resolve(candidates[randomIdx]);
-        } else {
-          resolve(null);
-        }
-      }
-    };
-    request.onerror = () => reject(request.error);
-  });
+        request.onsuccess = (event) => {
+            const cursor = (event.target as IDBRequest).result;
+            if (cursor) {
+                const q = cursor.value as CachedQuestion;
+                if (!excludeIds.includes(q.id)) {
+                    candidates.push(q);
+                }
+                cursor.continue();
+            } else {
+                if (candidates.length > 0) {
+                    const randomIdx = Math.floor(Math.random() * candidates.length);
+                    resolve(candidates[randomIdx]);
+                } else {
+                    resolve(null);
+                }
+            }
+        };
+        request.onerror = () => reject(request.error);
+    });
 };
+
 
 // --- Media Caching ---
 
@@ -134,12 +153,12 @@ export const cacheVideo = async (prompt: string, aspectRatio: string, blob: Blob
     blob,
     timestamp: Date.now(),
   };
-
+  
   return new Promise<void>((resolve, reject) => {
     const transaction = db.transaction(['videos'], 'readwrite');
     const store = transaction.objectStore('videos');
     const request = store.put(item);
-
+    
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
   });
@@ -148,12 +167,12 @@ export const cacheVideo = async (prompt: string, aspectRatio: string, blob: Blob
 export const getCachedVideo = async (prompt: string, aspectRatio: string): Promise<Blob | null> => {
   const db = await initDB();
   const id = `${prompt}_${aspectRatio}`;
-
+  
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(['videos'], 'readonly');
     const store = transaction.objectStore('videos');
     const request = store.get(id);
-
+    
     request.onsuccess = () => {
       const result = request.result as VideoCacheItem | undefined;
       resolve(result ? result.blob : null);
@@ -172,12 +191,12 @@ export const cacheAudio = async (text: string, voice: string, base64Data: string
     base64Data,
     timestamp: Date.now(),
   };
-
+  
   return new Promise<void>((resolve, reject) => {
     const transaction = db.transaction(['audio'], 'readwrite');
     const store = transaction.objectStore('audio');
     const request = store.put(item);
-
+    
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
   });
@@ -186,12 +205,12 @@ export const cacheAudio = async (text: string, voice: string, base64Data: string
 export const getCachedAudio = async (text: string, voice: string): Promise<string | null> => {
   const db = await initDB();
   const id = `${text}_${voice}`;
-
+  
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(['audio'], 'readonly');
     const store = transaction.objectStore('audio');
     const request = store.get(id);
-
+    
     request.onsuccess = () => {
       const result = request.result as AudioCacheItem | undefined;
       resolve(result ? result.base64Data : null);
@@ -224,12 +243,11 @@ export const saveQuestionResult = async (result: QuestionResult): Promise<void> 
   newProgress.lastPlayed = Date.now();
   newProgress.questionsAnswered += 1;
   newProgress.totalXP += result.xpEarned;
-
+  
   // Level Calculation: Simple sqrt curve
   newProgress.level = Math.floor(Math.sqrt(newProgress.totalXP / 50)) + 1;
 
   if (result.isCorrect) {
-    newProgress.correctAnswers += 1;
     newProgress.currentStreak += 1;
     if (newProgress.currentStreak > newProgress.bestStreak) {
       newProgress.bestStreak = newProgress.currentStreak;
@@ -272,6 +290,22 @@ export const saveQuestionResult = async (result: QuestionResult): Promise<void> 
     const transaction = db.transaction(['question_history'], 'readwrite');
     const store = transaction.objectStore('question_history');
     const request = store.add({ ...result, timestamp: Date.now() });
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+};
+
+// New function to update only the currentStreak in UserProgress
+export const updateCurrentStreakInUserProgress = async (streak: number): Promise<void> => {
+  const db = await initDB();
+  const progress = await getUserProgress(); // Get current progress
+
+  const newProgress = { ...progress, currentStreak: streak }; // Update only the streak
+
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(['user_progress'], 'readwrite');
+    const store = transaction.objectStore('user_progress');
+    const request = store.put({ id: USER_PROGRESS_KEY, data: newProgress });
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
   });
