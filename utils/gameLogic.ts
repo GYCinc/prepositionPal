@@ -37,57 +37,89 @@ const DYNAMIC_PREPOSITIONS = [
 export const buildGeminiPrompt = (level: GameLevel, preposition: Preposition, humorLevel: number, forceContextDiversity: boolean = false): string => {
   let vocabConstraint = '';
   let sentenceStructure = '';
-  let sentenceType = 'declarative'; // Default to declarative
+  let sentenceType = 'declarative'; 
+  const r = Math.random();
 
+  // Determine Sentence Type & Structure based on Level
   switch (level) {
     case GameLevel.Level_1: // A1
-      vocabConstraint = 'STRICTLY usage of only the Top 500 words in COCA (American). Use varied and interesting lexical choices.';
-      sentenceStructure = 'Simple Active Subject-Verb-Object. Max 6 words.';
+      vocabConstraint = 'Strict usage of only the Top 500 words in COCA (American). Focus on concrete, visible objects.';
+      sentenceStructure = 'Simple SVO (Subject-Verb-Object). Max 6 words.';
+      // Mostly declarative, small chance of simple question
+      if (r < 0.1) sentenceType = 'interrogative'; 
       break;
+
     case GameLevel.Level_2: // A1.5
-      vocabConstraint = 'STRICTLY usage of only the Top 800 words in COCA. Use varied and interesting lexical choices.';
-      sentenceStructure = 'Active sentences. Max 7 words.';
+      vocabConstraint = 'Strict usage of only the Top 800 words in COCA.';
+      sentenceStructure = 'Active voice. Simple descriptors (adjectives). Max 7 words.';
+      if (r < 0.15) sentenceType = 'interrogative';
       break;
+
     case GameLevel.Level_3: // A2
-      vocabConstraint = 'STRICTLY usage of only the Top 1200 words in COCA. Use varied and interesting lexical choices.';
-      sentenceStructure = 'Simple compound sentences. Max 9 words. Vary grammatical patterns.';
+      vocabConstraint = 'Top 1200 words in COCA.';
+      sentenceStructure = 'Simple compound sentences allowed (using "and", "but"). Max 9 words.';
+      if (r < 0.15) sentenceType = 'interrogative';
+      else if (r < 0.20) sentenceType = 'exclamatory';
       break;
+
     case GameLevel.Level_4: // A2.5
-      vocabConstraint = 'STRICTLY usage of only the Top 1800 words in COCA. Use varied and interesting lexical choices.';
-      sentenceStructure = 'Sentences with basic adjectives. Max 10 words. Vary grammatical patterns and simple clauses.';
+      vocabConstraint = 'Top 1800 words in COCA.';
+      sentenceStructure = 'Varied sentence beginnings. Use of prepositional phrases. Max 10 words.';
+      if (r < 0.20) sentenceType = 'interrogative';
+      else if (r < 0.25) sentenceType = 'exclamatory';
       break;
+
     case GameLevel.Level_5: // B1
-      vocabConstraint = 'STRICTLY usage of only the Top 2500 words in COCA. Use varied and interesting lexical choices.';
-      sentenceStructure = 'Conversational American English. Max 12 words. Incorporate more complex clauses or phrases.';
+      vocabConstraint = 'Top 2500 words in COCA.';
+      sentenceStructure = 'Conversational flow. Introduction of simple subordinate clauses. Max 12 words.';
+      if (r < 0.20) sentenceType = 'interrogative';
+      else if (r < 0.30) sentenceType = 'exclamatory';
+      else if (r < 0.35) sentenceType = 'imperative';
       break;
+
     case GameLevel.Level_6: // B1.5
-      vocabConstraint = 'STRICTLY usage of only the Top 3200 words in COCA. Use varied and interesting lexical choices.';
-      sentenceStructure = 'Conversational. Max 13 words. Utilize various tenses (Future/Past) and more complex sentence structures.';
+      vocabConstraint = 'Top 3200 words in COCA.';
+      sentenceStructure = 'Mixed tenses (Simple Past/Present/Future). Max 13 words.';
+      if (r < 0.20) sentenceType = 'interrogative';
+      else if (r < 0.30) sentenceType = 'exclamatory';
+      else if (r < 0.35) sentenceType = 'imperative';
       break;
+
     case GameLevel.Level_7: // B2
-      vocabConstraint = 'Usage of Top 4000 words in COCA. Use varied and interesting lexical choices.';
-      sentenceStructure = 'Natural, fluent American phrasing. Max 15 words. Include diverse grammatical structures.';
-      // 20% chance for interrogative/exclamatory
-      if (Math.random() < 0.2) sentenceType = (Math.random() < 0.5) ? 'interrogative' : 'exclamatory';
+      vocabConstraint = 'Top 4000 words in COCA. Varied lexical choices.';
+      sentenceStructure = 'Natural, fluent American phrasing. Max 15 words.';
+      if (r < 0.25) sentenceType = 'interrogative';
+      else if (r < 0.35) sentenceType = 'exclamatory';
+      else if (r < 0.40) sentenceType = 'imperative';
       break;
+
     case GameLevel.Level_8: // B2.5
-      vocabConstraint = 'Usage of the full Top 5000 words in COCA (Mastery). Use varied and interesting lexical choices.';
-      sentenceStructure = 'Natural, fluent American phrasing. Max 16 words. Include diverse and more complex grammatical structures.';
-      if (Math.random() < 0.2) sentenceType = (Math.random() < 0.5) ? 'interrogative' : 'exclamatory';
+      vocabConstraint = 'Top 5000 words in COCA. Richer vocabulary.';
+      sentenceStructure = 'Complex sentence structures (e.g., relative clauses). Max 16 words.';
+      if (r < 0.25) sentenceType = 'interrogative';
+      else if (r < 0.35) sentenceType = 'exclamatory';
+      else if (r < 0.45) sentenceType = 'imperative';
       break;
+
     case GameLevel.Level_9: // C1
-      vocabConstraint = 'Advanced vocabulary (Top 8000 COCA). Use varied and interesting lexical choices.';
-      sentenceStructure = 'Complex, nuanced American idioms. Max 18 words. Explore sophisticated grammatical constructions.';
-      if (Math.random() < 0.25) sentenceType = (Math.random() < 0.5) ? 'interrogative' : 'exclamatory';
+      vocabConstraint = 'Top 8000 words in COCA. Advanced vocabulary.';
+      sentenceStructure = 'Nuanced idioms and abstract phrasing. Max 18 words.';
+      if (r < 0.30) sentenceType = 'interrogative';
+      else if (r < 0.40) sentenceType = 'exclamatory';
+      else if (r < 0.50) sentenceType = 'imperative';
       break;
+
     case GameLevel.Level_10: // C1.5
-      vocabConstraint = 'Unrestricted Native-level American eloquence. Use varied and interesting lexical choices.';
-      sentenceStructure = 'Highly sophisticated, abstract, or literary structures. Max 20 words. Employ a full range of grammatical complexity.';
-      if (Math.random() < 0.25) sentenceType = (Math.random() < 0.5) ? 'interrogative' : 'exclamatory';
+      vocabConstraint = 'Native-level vocabulary (Unrestricted).';
+      sentenceStructure = 'Sophisticated literary or technical structures. Max 20 words.';
+      if (r < 0.30) sentenceType = 'interrogative';
+      else if (r < 0.40) sentenceType = 'exclamatory';
+      else if (r < 0.50) sentenceType = 'imperative';
       break;
+
     default:
-      vocabConstraint = 'Top 2000 COCA words. Use varied and interesting lexical choices.';
-      sentenceStructure = 'Standard American English. Vary grammatical patterns.';
+      vocabConstraint = 'Top 2000 COCA words.';
+      sentenceStructure = 'Standard American English.';
   }
 
   let humorAdj = '';
@@ -119,12 +151,18 @@ export const buildGeminiPrompt = (level: GameLevel, preposition: Preposition, hu
   }
 
   let sentenceTypeInstruction = '';
-  if (sentenceType === 'interrogative') {
-      sentenceTypeInstruction = 'The sentence MUST be an **INTERROGATIVE QUESTION**. Ensure the question can be visually depicted.';
-  } else if (sentenceType === 'exclamatory') {
-      sentenceTypeInstruction = 'The sentence MUST be an **EXCLAMATORY STATEMENT**. Ensure the exclamation can be visually depicted.';
-  } else {
-      sentenceTypeInstruction = 'The sentence MUST be a **DECLARATIVE STATEMENT**.';
+  switch (sentenceType) {
+      case 'interrogative':
+          sentenceTypeInstruction = 'The sentence MUST be an **INTERROGATIVE QUESTION** (e.g., starting with Who, What, Where, Is, Are). CRITICAL: Ensure the question describes a VISIBLE scene (e.g., "Is the cup on the table?" NOT "What do you think?").';
+          break;
+      case 'exclamatory':
+          sentenceTypeInstruction = 'The sentence MUST be an **EXCLAMATORY STATEMENT** (ending in !). It should express surprise, joy, or emphasis about the scene.';
+          break;
+      case 'imperative':
+          sentenceTypeInstruction = 'The sentence MUST be an **IMPERATIVE COMMAND** (e.g., "Put the book on the table.").';
+          break;
+      default:
+          sentenceTypeInstruction = 'The sentence MUST be a **DECLARATIVE STATEMENT**.';
   }
 
 

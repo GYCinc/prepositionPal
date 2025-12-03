@@ -8,15 +8,33 @@ interface LoadingSpinnerProps {
 
 const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ message }) => {
   return (
-    <div className="flex flex-col items-center justify-center p-6">
+    <div className="flex flex-col items-center justify-center p-6 text-[#EF6035]">
       {/* 
-        New CSS-based Smiley Loader 
-        Styles are defined in index.html as .loader, .dot, etc.
+        Custom SVG Smiley Loader 
+        - Vector-based for perfect transparency on any background
+        - Uses 'currentColor' to inherit the primary orange
+        - Adds a neon glow effect
       */}
-      <div className="loader">
-        <div className="dot"></div>
-        <div className="dot"></div>
-      </div>
+      <motion.svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 100 100"
+        className="w-24 h-24 drop-shadow-[0_0_15px_rgba(239,96,53,0.4)]"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+      >
+        {/* Eyes */}
+        <circle cx="30" cy="40" r="8" fill="currentColor" />
+        <circle cx="70" cy="40" r="8" fill="currentColor" />
+        
+        {/* Smile - Quadratic Bezier Curve */}
+        <path
+          d="M 20 65 Q 50 90 80 65"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="10"
+          strokeLinecap="round"
+        />
+      </motion.svg>
 
       {message && (
         <motion.p 

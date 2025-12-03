@@ -161,60 +161,6 @@
           animation-play-state: paused;
         }
 
-        /* --- New CSS Smiley Loader --- */
-        /* Adapted from user request: https://stackoverflow.com/q */
-        
-        @keyframes loader-spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-
-        .loader {
-          position: relative;
-          border-radius: 50%;
-          box-sizing: border-box;
-          width: 100px;
-          height: 100px;
-          /* 
-             Gradient split: 
-             Top half transparent (so it doesn't look like a block), 
-             Bottom half Primary Orange (#EF6035) for the smile 
-          */
-          background: linear-gradient(to bottom, transparent 50%, #EF6035 50%);
-          animation: loader-spin 1.5s linear infinite;
-        }
-
-        .loader:before {
-          content: "";
-          position: absolute;
-          left: 12px; 
-          right: 12px; 
-          top: 12px; 
-          bottom: 12px;
-          border-radius: 50%;
-          /* Match the dark card background to create the hollow ring effect */
-          background: #212229; 
-        }
-
-        .dot {
-          position: absolute;
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-          background: #EF6035; /* Primary Orange Eyes */
-          z-index: 10;
-        }
-
-        .dot:first-child {
-          left: 14px;
-          top: 14px;
-        }
-
-        .dot:last-child {
-          right: 14px;
-          top: 14px;
-        }
-
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-body text-gray-800 dark:text-gray-200 overflow-x-hidden">

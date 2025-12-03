@@ -2,5 +2,5 @@
   "name": "PrepositionPal",
   "description": "Your AI-powered guide to mastering English prepositions through an interactive, dynamic, and visually engaging game. Features adjustable levels and diverse scenarios powered by the Gemini API for endless learning.",
   "requestFramePermissions": [],
-  "version": "0.1.22"
+  "version": "0.1.25"
 }
